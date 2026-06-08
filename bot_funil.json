@@ -1,0 +1,630 @@
+{
+  "name": "bot_funil",
+  "nodes": [
+    {
+      "parameters": {
+        "resource": "messages-api",
+        "instanceName": "bot-agenda",
+        "remoteJid": "={{ $('Webhook').item.json.body.data.key.remoteJid.split('@')[0] }}",
+        "messageText": "={{ $json.output }}",
+        "options_message": {}
+      },
+      "type": "n8n-nodes-evolution-api.evolutionApi",
+      "typeVersion": 1,
+      "position": [
+        2000,
+        400
+      ],
+      "id": "662f4b3a-cb83-4d3f-a018-9a3ea45b764b",
+      "name": "Enviar texto",
+      "credentials": {
+        "evolutionApi": {
+          "id": "kL4mEgS7V3YWwmcf",
+          "name": "Evolution account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.body?.data?.key?.remoteJid || $json.body?.sender || \"whatsapp_session\" }}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        1280,
+        624
+      ],
+      "id": "73801d07-586a-4581-8822-08b087dbdf31",
+      "name": "Simple Memory1"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1152,
+        624
+      ],
+      "id": "a5a6b078-f4e3-4a1c-bf4b-924941861e0c",
+      "name": "OpenAI Chat Model1",
+      "credentials": {
+        "openAiApi": {
+          "id": "Q31wlupoIO6vCVji",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body?.data?.message?.conversation || $json.body?.message?.conversation || \"Oi\" }}",
+        "options": {
+          "systemMessage": "=Você é o assistente virtual inteligente do Henrique, representando a empresa Attenda Tech. Seu objetivo é gerenciar a agenda de consultas OU qualificar leads vindos das campanhas de tráfego, dependendo de como a conversa começar.\nHoje é {{ $now.format('dddd, DD [de] MMMM [de] YYYY') }}. Responda em português, tom direto, simpático e profissional. Envie sempre mensagens curtas e apenas uma por vez.\n\nESTREIA DA CONVERSA - IDENTIFICAÇÃO DE FLUXO:\n- Se o usuário enviar a mensagem exata: \"Olá! Vim através do site da Attenda Tech e quero solicitar meu diagnóstico de automação gratuito.\", você deve entrar IMEDIATAMENTE no [FLUXO A - CAPTAÇÃO DE LEADS].\n- Se o usuário saudar normalmente (\"oi\", \"bom dia\", \"quero agendar\"), entre no [FLUXO B - GERENCIAMENTO DE CONSULTAS].\n\nIMPORTANTE!!!!!!!!!!!\nNÃO USE A FERRAMENTA DE LISTAR HORÁRIOS E NEM FALE DE AGENDAMENTO SE O USUÁRIO VIER COM A FRASE DO SITE. SE PRECISAR SALVAR O LEAD, COLETE PRIMEIRO O NOME E DEPOIS O E-MAIL ANTES DE QUALQUER OUTRA AÇÃO.\n\n[FLUXO A - CAPTAÇÃO DE LEADS]\n1. Responda com entusiasmo! Agradeça o interesse na Attenda Tech e pergunte o NOME COMPLETO da pessoa para personalizar o diagnóstico.\n2. AGUARDE a resposta do usuário. Nunca invente um nome. Assim que ela disser o nome, valide e peça o melhor E-MAIL para envio do relatório técnico de automação.\n3. Não peça o nome e o e-mail juntos. Vá estritamente um por vez.\n4. ATENÇÃO CRÍTICA: Você NÃO precisa pedir o telefone do cliente, pois o sistema já captura isso automaticamente. Concentre-se única e exclusivamente em coletar o Nome Real e o E-mail Real digitados pelo usuário.\n5. Assim que coletar o E-mail, use IMEDIATAMENTE a ferramenta \"Salvar Lead da Campanha\" passando o Nome e o E-mail coletados.\n6. Após rodar a ferramenta com sucesso, mande uma mensagem final curta confirmando o recebimento dos dados e informe que o especialista Henrique entrará em contato em até 24h. Encerre o raciocínio.\n\n[FLUXO B - GERENCIAMENTO DE CONSULTAS]\n1. Use a ferramenta de leitura de planilha para buscar os horários \"DISPONÍVEIS\" e exiba-os formatados para o usuário junto com seus respectivos IDs.\n2. Para agendar, você precisa coletar estritamente: ID do horário (número de 4 dígitos), Nome Completo e Telefone. Peça um por um.\n3. Assim que o usuário enviar o ID escolhido, responda imediatamente: \"ID [número] anotado! Qual seu nome completo?\" e salve esse ID no contexto.\n4. Assim que coletar o telefone (último dado), use IMEDIATAMENTE a ferramenta de marcação de agendamento (Marcar Agendamento) passando os dados coletados e mudando o STATUS para \"OCUPADO\".\n5. Para cancelamentos, peça o ID do agendamento, peça uma confirmação explícita e execute a ferramenta \"Cancelar Agendamento\" limpando os campos.\n\nCRÍTICO PARA AMBOS OS FLUXOS:\n- Nunca invente dados ou horários.\n- Nunca mencione termos técnicos como \"n8n\", \"ferramenta\", \"planilha\" ou \"prompt\".\n- Após executar com sucesso qualquer ferramenta (marcar, cancelar, listar ou salvar lead), gere imediatamente uma resposta curta de confirmação para o usuário e encerre o raciocínio. Não reexecute a ferramenta na mesma rodada."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1408,
+        400
+      ],
+      "id": "aad1b0f4-2979-4aa2-b00d-aba7a3b51973",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "4c939587-5695-40a8-a39f-fbc7f9a2d738",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        704,
+        400
+      ],
+      "id": "3224d8aa-0773-4e2b-84bc-87ce9d608aa0",
+      "name": "Webhook",
+      "webhookId": "4c939587-5695-40a8-a39f-fbc7f9a2d738"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e32da673-1d47-4dcc-9ca9-3758d17d29a5",
+              "leftValue": "={{ $json.body?.data?.status }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "9cd5ac6d-2232-4096-897b-7ccd9bbe7f65",
+              "leftValue": "={{ $json.body?.data?.message?.conversation || \"\" }}",
+              "rightValue": "Vim através do site da Attenda Tech",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        928,
+        400
+      ],
+      "id": "c25d6483-dc4a-4266-b577-575552757c64",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Use esta ferramenta para liberar um horário de volta para DISPONÍVEL e apagar os dados do paciente na coluna NOME PACIENTE e TELEFONE. \n\nATENÇÃO: Só execute esta ferramenta após coletar o ID E o cliente ter confirmado explicitamente que deseja prosseguir com o cancelamento.",
+        "authentication": "serviceAccount",
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1qzcl1wkyuB0om2dKbq02YnZSVyigNTr5GjxzbjWA5e8/edit?usp=sharing",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Horários",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qzcl1wkyuB0om2dKbq02YnZSVyigNTr5GjxzbjWA5e8/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ID": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('ID__using_to_match_', `ID do agendamento a ser cancelado`, 'string') }}",
+            "STATUS": "DISPONÍVEL",
+            "NOME PACIENTE": "={{ String() }}",
+            "TELEFONE": "={{ String() }}"
+          },
+          "matchingColumns": [
+            "ID"
+          ],
+          "schema": [
+            {
+              "id": "ID",
+              "displayName": "ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "DATA",
+              "displayName": "DATA",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "HORA",
+              "displayName": "HORA",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "STATUS",
+              "displayName": "STATUS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "NOME PACIENTE",
+              "displayName": "NOME PACIENTE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "TELEFONE",
+              "displayName": "TELEFONE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        1408,
+        624
+      ],
+      "id": "edb6ef1a-07e5-45cc-85aa-4e37dec28aba",
+      "name": "Cancelar Agendamento",
+      "credentials": {
+        "googleApi": {
+          "id": "ts3Rn5SIbzREl3hc",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Use esta ferramenta para marcar um agendamento na planilha quando tiver ID, NOME e TELEFONE.",
+        "authentication": "serviceAccount",
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1qzcl1wkyuB0om2dKbq02YnZSVyigNTr5GjxzbjWA5e8/edit?usp=sharing",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Horários",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "STATUS": "OCUPADO",
+            "NOME PACIENTE": "={{ $fromAI('NOME_PACIENTE', 'Nome completo do paciente', 'string') }}",
+            "TELEFONE": "={{ $fromAI('TELEFONE', 'Telefone do paciente', 'string') }}",
+            "ID": "={{ $fromAI('ID', 'ID do horario escolhido', 'string') }}"
+          },
+          "matchingColumns": [
+            "ID"
+          ],
+          "schema": [
+            {
+              "id": "ID",
+              "displayName": "ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "STATUS",
+              "displayName": "STATUS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "NOME PACIENTE",
+              "displayName": "NOME PACIENTE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "TELEFONE",
+              "displayName": "TELEFONE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        1536,
+        624
+      ],
+      "id": "1531458f-dc78-4668-93be-b410a7c492bc",
+      "name": "Marcar Agendamento",
+      "credentials": {
+        "googleApi": {
+          "id": "ts3Rn5SIbzREl3hc",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Use esta ferramenta para ler todos os horários e verificar quais estão com STATUS igual a DISPONÍVEL.",
+        "authentication": "serviceAccount",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1qzcl1wkyuB0om2dKbq02YnZSVyigNTr5GjxzbjWA5e8/edit?gid=0#gid=0",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Horários",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1qzcl1wkyuB0om2dKbq02YnZSVyigNTr5GjxzbjWA5e8/edit#gid=0"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "STATUS",
+              "lookupValue": "DISPONÍVEL"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        1664,
+        624
+      ],
+      "id": "775a2c51-20ae-46ee-9845-77e98ce84518",
+      "name": "Listar Horarios Disponiveis",
+      "credentials": {
+        "googleApi": {
+          "id": "ts3Rn5SIbzREl3hc",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Salvar leads da campanha",
+        "authentication": "serviceAccount",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "https://docs.google.com/spreadsheets/d/1wwU9GFRE8yTMJ8nshrMGGgls5ldttw692vUAH0-SAHw/edit?usp=sharing",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "LEADS"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Nome": "={{ $fromAI('NOME_LEAD', 'Nome completo do lead interessado', 'string') }}",
+            "E-mail": "={{ $fromAI('EMAIL_LEAD', 'E-mail corporativo ou pessoal fornecido pelo lead', 'string') }}",
+            "Telefone": "={{ $('Webhook').item.json.body?.sender?.split('@')[0] }}",
+            "Data da Entrada": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Data_da_Entrada', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Data da Entrada",
+              "displayName": "Data da Entrada",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Nome",
+              "displayName": "Nome",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "E-mail",
+              "displayName": "E-mail",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Telefone",
+              "displayName": "Telefone",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Origem",
+              "displayName": "Origem",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Status do Lead",
+              "displayName": "Status do Lead",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Contatado?",
+              "displayName": "Contatado?",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Valor Estimado",
+              "displayName": "Valor Estimado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Notas/Observações",
+              "displayName": "Notas/Observações",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        1792,
+        624
+      ],
+      "id": "fafc6d0f-0d66-4eef-a9f2-ac74657e605d",
+      "name": "Salvar Leads da Campanha",
+      "credentials": {
+        "googleApi": {
+          "id": "ts3Rn5SIbzREl3hc",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Simple Memory1": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Enviar texto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Cancelar Agendamento": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Marcar Agendamento": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Listar Horarios Disponiveis": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Salvar Leads da Campanha": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "56f38d05-715a-44bb-ae11-4debd0549e0d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "20a68875cab8d8460279c09fcc0d4fa2ba032c26d22a343f300f58be44a2270d"
+  },
+  "id": "K0EJ7aXLZFAKRM0r",
+  "tags": []
+}
